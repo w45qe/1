@@ -32,6 +32,7 @@ from tkinter import messagebox
 import threading
 
 # List of options just copied off the website, they probably work fine idk
+'''
 eur_options = [
     ('Eureka', 'EUR'), # Error 1 is C2W vs C2L
     ('Arctic Bay', 'ARC'), # Error 2 is presumably that station doesn't use those intervals to measure
@@ -62,6 +63,39 @@ eur_options = [
     ('Sanikiluaq❌2', 'SAN'),
     ('Sachs Harbour', 'SAC'),
 ]
+'''
+
+
+eur_options = [
+    ('Eureka', 'EUR', 4), # Error 1 is C2W vs C2L
+    ('Arctic Bay', 'ARC', 3), # Error 2 is presumably that station doesn't use those intervals to measure
+    ('Arviat', 'ARV', 3), # Number 3 is theoretically fine but actually isn't
+    ('Cambridge Bay', 'CBB', 1),
+    ('Kugluktu', 'KUG', 2),
+    ('Resolute', 'RES', 1),
+    ('Iqaluit', 'IQA', 1),
+    ('Ottawa', 'OTT', 2),
+    ('Pond Inlet', 'PON', 2),
+    ('Churchill', 'CHU', 2),
+    ('Coral Harbour', 'COR', 2),
+    ('Fort McMurray', 'MCM', 3), #
+    ('City of Dawson', 'DAW', 3), #
+    ('Ministik Lake', 'EDM', 3), #
+    ('Grise Fiord', 'GRI', 2),
+    ('Gjoa Haven', 'GJO', 3), #
+    ('Fort Simpson', 'FSI', 3), #
+    ('Qikiqtarjuaq', 'QIK', 3), #
+    ('Gilliam', 'GIL', 3), #
+    ('Fort Smith', 'FSM', 3), #
+    ('Rabbit Lake', 'RAB', 3), #
+    ('Rankin Inlet', 'RAN', 3), #
+    ('Taloyoak/Vernadsky Station', 'TAL', 3), #
+    ('Whale Cove', 'WHA', 2),
+    ('Uapishka', 'UAP', 2),
+    ('Repulse Bay', 'REP', 2),
+    ('Sanikiluaq', 'SAN', 2),
+    ('Sachs Harbour', 'SAC', 3),
+]
 
 def select_station():
     def on_select(abbr):
@@ -70,16 +104,20 @@ def select_station():
         root.destroy()
 
     def on_enter(e):
-        e.widget.config(bg='#d1e7dd', font=('Arial', 14))
+        if e.widget['state'] == 'normal':
+            e.widget.config(bg='#d1e7dd', font=('Arial', 14))
 
     def on_leave(e):
-        e.widget.config(bg='SystemButtonFace', font=('Arial', 14))
+        if e.widget['state'] == 'normal':
+            e.widget.config(bg='SystemButtonFace', font=('Arial', 14))
 
     def on_press(e):
-        e.widget.config(bg='#a3c9a8')
+        if e.widget['state'] == 'normal':
+            e.widget.config(bg='#a3c9a8')
 
     def on_release(e):
-        e.widget.config(bg='#d1e7dd')
+        if e.widget['state'] == 'normal':
+            e.widget.config(bg='#d1e7dd')
 
     root = tk.Tk()
     root.title('Select Station')
@@ -94,7 +132,8 @@ def select_station():
 
     # 4 columns
     columns = 4
-    for idx, (city, abbr) in enumerate(eur_options):
+    for idx, (city, abbr, number) in enumerate(eur_options):
+        state = 'normal' if number == 4 else 'disabled'
         btn = tk.Button(
             btn_frame,
             text=city,
@@ -103,8 +142,11 @@ def select_station():
             font=('Arial', 14),
             relief='raised',
             bd=2,
-            command=lambda a=abbr: on_select(a)
+            command=lambda a=abbr: on_select(a),
+            state=state,
         )
+        if number != 4:
+            btn.config(bg="#969494", fg="#000000")
         row = idx // columns
         col = idx % columns
         btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
@@ -144,7 +186,7 @@ progress_root.update()
 
 # pretend loading bar animation
 colors = ['#a3e4d7', '#aed6f1', '#d2b4de', '#f9e79f', '#f5b7b1', '#fad7a0', '#abebc6']
-steps = 25
+steps = 27
 import itertools
 spinner = itertools.cycle(['🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛'])
 for i in range(steps):
@@ -153,7 +195,7 @@ for i in range(steps):
     progress_bar.itemconfig(bar, fill=color)
     progress_bar.coords(bar, 0, 0, 10*(i+1), 22)
     progress_root.update()
-    time.sleep(0.25)
+    time.sleep(0.10)
 
 
 
@@ -193,10 +235,14 @@ f2 = 1227600000 #dr2=0.26741840036072685144043892821996
 #the 0.104m/TECU in the doc is 0.10504595284873213644877420540129m/TECU I guess
 r=0.10504595284873213644877420540129
 
+
+'''
 P1 = rinex_data['C1C']
 P2 = rinex_data
+'''
 
-TECp= (P2-P1)/r #pseudorange tec
+
+# TECp= (P2-P1)/r #pseudorange tec
 
 C1= rinex_data['L1C'] #CP is *not* a great abbreviation for things...
 C2= rinex_data['L2W']
@@ -233,7 +279,7 @@ sat_flat = sat_grid.flatten()
 
 
 
-TECp = TECp.values
+#TECp = TECp.values
 TECc = TECc.values
 
 #valid_indices = np.isfinite(TECp) & np.isfinite(TECc)
@@ -301,29 +347,30 @@ DCBp=dp1-dp2
 DCBk=dk1-dk2
 DPBp=phip1-phip2
 DPBk=phik1-phik2
-PPKGF=P2-P1
+# PPKGF=P2-P1
 LPKGF=(w1*C1)-(w2*C2)
-PsTECpk=((PPKGF+(c*(DPBp+DPBk)))/A)*(((f1*f1)-(f2*f2))/(f1*f1*f2*f2))
+# PsTECpk=((PPKGF+(c*(DPBp+DPBk)))/A)*(((f1*f1)-(f2*f2))/(f1*f1*f2*f2))
 LsTECpk=((LPKGF-npk+(c*(DPBp+DPBk)))/A)*(((f1*f1)-(f2*f2))/(f1*f1*f2*f2))
 DCBpk=DCBp+DCBk
 W=0
 #  sTECpk=(1/A)*((f1*f1*f2*f2)/((f1*f1)-(f2*f2)))*(LPKGF+W+(c*DCBpk))
-Aff=(((1/A))*((fmhz1*fmhz1*fmhz2*fmhz2)/((fmhz1*fmhz1)-(fmhz2*fmhz2))))
+# Aff=(((1/A))*((fmhz1*fmhz1*fmhz2*fmhz2)/((fmhz1*fmhz1)-(fmhz2*fmhz2))))
+Aff=(((1/A)*((f1*f1*f2*f2)/((f1*f1)-(f2*f2))))*(1/10000000000000000))
 sTECpk=Aff*(LPKGF+W+(c*DCBpk))
 print('LPKGF:',LPKGF)
 print('ghd',Aff)
 print('sTECPK:',sTECpk)
 print('LsTECpk:',LsTECpk)
-print('PsTECpk:',PsTECpk)
+#print('PsTECpk:',PsTECpk)
 print('sTECpk:',sTECpk)
-print('sTECpk/10000:',sTECpk/10000)
+print('sTECpk/10000:',sTECpk)
 
 dsTECpk=np.diff(sTECpk)
 
 print('dsTECpk:',dsTECpk)
           
 LPKGF_series = (w1*C1.values)-(w2*C2.values)
-sTECpk_series = (Aff * (LPKGF_series + W + (c*DCBpk)))/10000
+sTECpk_series = (Aff * (LPKGF_series + W + (c*DCBpk)))
 dsTECpk_series = np.diff(sTECpk_series)
 
 
@@ -381,13 +428,50 @@ print('TEC values calculated, saved, and plotted.')
 
 
 
-progress_label.config(text='calculated\n press to view plots.')
+progress_label.config(text='calculated,\n press "OKay 🙂" to view plots,\ndon\'t mind the cat.')
 progress_bar.coords(bar, 0, 0, 320, 22)
 progress_root.update()
 
 ok_button = tk.Button(progress_root, text='OKay 🙂', command=progress_root.destroy, padx=20, pady=10)
 ok_button.pack(pady=10)
 progress_root.mainloop()
+
+
+
+# tigger
+
+from PIL import Image, ImageTk
+import random
+
+def show_tigger():
+    tigger_photos = [
+        "fuip3101.png",
+        "yo89ndz8.png",
+        "9e366f7i.png",
+    ]
+
+    tigger = tk.Tk()
+    tigger.title("meow")
+    tigger.iconbitmap('fuip3101.ico')
+    img_path= random.choice(tigger_photos)
+    img = Image.open(img_path)
+    #img = img.resize((300, 300))
+    tigger_img = ImageTk.PhotoImage(img)
+    img_label = tk.Label(tigger, image=tigger_img)
+    img_label.pack(padx=10, pady=10)
+    msg = tk.Label(tigger, text="meow", font=("Arial", 16))
+    msg.pack(pady=10)
+    def close_and_continue():
+        tigger.destroy()
+    ok_btn = tk.Button(tigger, text="meow", font=("Arial", 14), command=close_and_continue, padx=20, pady=10)
+    ok_btn.pack(pady=10)
+    tigger.mainloop()
+
+show_tigger()
+
+
+
+
 
 
 import matplotlib.pyplot as plt
@@ -431,7 +515,7 @@ plt.ylabel('TEC (TECU)')
 plt.tight_layout()
 
 # check buttons
-rax = plt.axes([0.01, 0.15, 0.15, 0.5])  
+rax = plt.axes([0.01, 0.15, 0.15, 0.75])  
 check = CheckButtons(rax, labels, [True]*len(labels))
 
 def line_togle(label):
@@ -442,7 +526,7 @@ def line_togle(label):
 check.on_clicked(line_togle)
 
 # toggle all button
-toggle_ax = plt.axes([0.01, 0.85, 0.15, 0.05])
+toggle_ax = plt.axes([0.01, 0.90, 0.15, 0.05])
 toggle_button = Button(toggle_ax, 'Toggle all (click twice)')
 toggle_state = [True] 
 
@@ -457,6 +541,7 @@ def toggle_all(event):
 toggle_button.on_clicked(toggle_all)
 
 plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.subplots_adjust(left=0.22) 
 plt.show()
 
 
