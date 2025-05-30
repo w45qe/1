@@ -236,13 +236,13 @@ f2 = 1227600000 #dr2=0.26741840036072685144043892821996
 r=0.10504595284873213644877420540129
 
 
-'''
+
 P1 = rinex_data['C1C']
-P2 = rinex_data
-'''
+P2 = rinex_data['C2L']
 
 
-# TECp= (P2-P1)/r #pseudorange tec
+
+TECp= (P2-P1)/r #pseudorange tec
 
 C1= rinex_data['L1C'] #CP is *not* a great abbreviation for things...
 C2= rinex_data['L2W']
@@ -347,7 +347,7 @@ DCBp=dp1-dp2
 DCBk=dk1-dk2
 DPBp=phip1-phip2
 DPBk=phik1-phik2
-# PPKGF=P2-P1
+PPKGF=P2-P1
 LPKGF=(w1*C1)-(w2*C2)
 # PsTECpk=((PPKGF+(c*(DPBp+DPBk)))/A)*(((f1*f1)-(f2*f2))/(f1*f1*f2*f2))
 LsTECpk=((LPKGF-npk+(c*(DPBp+DPBk)))/A)*(((f1*f1)-(f2*f2))/(f1*f1*f2*f2))
@@ -357,14 +357,16 @@ W=0
 # Aff=(((1/A))*((fmhz1*fmhz1*fmhz2*fmhz2)/((fmhz1*fmhz1)-(fmhz2*fmhz2))))
 Aff=(((1/A)*((f1*f1*f2*f2)/((f1*f1)-(f2*f2))))*(1/10000000000000000))
 sTECpk=Aff*(LPKGF+W+(c*DCBpk))
+psTECpk=Aff*(PPKGF+W+(c*DCBpk))
 print('LPKGF:',LPKGF)
 print('ghd',Aff)
 print('sTECPK:',sTECpk)
 print('LsTECpk:',LsTECpk)
 #print('PsTECpk:',PsTECpk)
 print('sTECpk:',sTECpk)
-print('sTECpk/10000:',sTECpk)
+print('psTECpk:',psTECpk)
 
+dpsTECpk=np.diff(psTECpk)
 dsTECpk=np.diff(sTECpk)
 
 print('dsTECpk:',dsTECpk)
@@ -372,6 +374,17 @@ print('dsTECpk:',dsTECpk)
 LPKGF_series = (w1*C1.values)-(w2*C2.values)
 sTECpk_series = (Aff * (LPKGF_series + W + (c*DCBpk)))
 dsTECpk_series = np.diff(sTECpk_series)
+
+PPKGF_series = P2.values-C2.values
+psTECpk_series=(Aff * (PPKGF_series + W + (c*DCBpk)))
+dpsTECpk_series = np.diff(psTECpk_series)
+
+
+
+
+
+print('psTECpk:',psTECpk)
+print('dpsTECpk:',dpsTECpk)
 
 
 
@@ -546,5 +559,65 @@ plt.show()
 
 
 
+
+
+
+
+
+fig2, ax2 = plt.subplots(figsize=(12, 6))
+lines2 = []
+labels2 = []
+
+# Add psTECpk and dpsTECpk to the DataFrame
+df['psTECpk'] = psTECpk_series.flatten()
+df['dpsTECpk'] = np.nan
+
+for sat in df['satellite thingymabob'].unique():
+    sat_mask = df['satellite thingymabob'] == sat
+    sat_df = df[sat_mask].sort_values('time')
+    ds = np.diff(sat_df['psTECpk'], prepend=np.nan)
+    df.loc[sat_mask, 'dpsTECpk'] = ds
+
+for sat in df['satellite thingymabob'].unique():
+    sat_df = df[df['satellite thingymabob'] == sat]
+    l1, = ax2.plot(sat_df['time'], sat_df['psTECpk'], label=f'psTECpk {sat}', linestyle='-.')
+    l2, = ax2.plot(sat_df['time'], sat_df['dpsTECpk'], label=f'dpsTECpk {sat}', linestyle=':')
+    lines2.extend([l1, l2])
+    labels2.extend([f'psTECpk {sat}', f'dpsTECpk {sat}'])
+
+ax2.set_title('psTECpk for each satellite thingymabob ('+EUR+')')
+ax2.set_xlabel('Time')
+ax2.set_ylabel('psTECpk (units)')
+plt.tight_layout()
+
+# Check buttons for second plot
+rax2 = plt.axes([0.01, 0.15, 0.15, 0.75], figure=fig2)
+check2 = CheckButtons(rax2, labels2, [True]*len(labels2))
+
+def line_toggle2(label):
+    index = labels2.index(label)
+    lines2[index].set_visible(not lines2[index].get_visible())
+    plt.draw()
+
+check2.on_clicked(line_toggle2)
+
+# Toggle all button for second plot
+toggle_ax2 = plt.axes([0.01, 0.90, 0.15, 0.05], figure=fig2)
+toggle_button2 = Button(toggle_ax2, 'Toggle all (click twice)')
+toggle_state2 = [True]
+
+def toggle_all2(event):
+    new_state = not all(line.get_visible() for line in lines2)
+    for i, line in enumerate(lines2):
+        line.set_visible(new_state)
+        check2.set_active(i) if check2.get_status()[i] != new_state else None
+    plt.draw()
+    toggle_state2[0] = new_state
+
+toggle_button2.on_clicked(toggle_all2)
+
+ax2.legend(loc='upper left', bbox_to_anchor=(1, 1))
+plt.subplots_adjust(left=0.22)
+plt.show()
 
 
