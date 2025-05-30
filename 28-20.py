@@ -377,8 +377,8 @@ LPKGF_series = (w1*C1.values)-(w2*C2.values)
 sTECpk_series = (Aff * (LPKGF_series + W + (c*DCBpk)))
 dsTECpk_series = np.diff(sTECpk_series)
 
-PPKGF_series = P2.values-C2.values
-psTECpk_series=(Aff * (PPKGF_series + W + (c*DCBpk)))
+PPKGF_series = P2.values-P1.values
+psTECpk_series= (Aff * (PPKGF_series + W + (c*DCBpk)))
 dpsTECpk_series = np.diff(psTECpk_series)
 
 
