@@ -30,6 +30,8 @@ import tkinter as tk
 from tkinter import simpledialog
 from tkinter import messagebox
 import threading
+from tkinter import ttk
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # List of options just copied off the website, they probably work fine idk
 '''
@@ -124,7 +126,7 @@ def select_station():
     root.iconbitmap('fuip3101.ico')
     EUR = None
 
-    label = tk.Label(root, text="Select a station (some just don't exist for this way but whatever):", font=('Arial', 14))
+    label = tk.Label(root, text="Select station:", font=('Arial', 14))
     label.pack(padx=10, pady=10)
 
     btn_frame = tk.Frame(root)
@@ -461,6 +463,7 @@ def show_tigger():
         "fuip3101.png",
         "yo89ndz8.png",
         "9e366f7i.png",
+        "stanley.png",
     ]
 
     tigger = tk.Tk()
@@ -490,6 +493,9 @@ show_tigger()
 import matplotlib.pyplot as plt
 from matplotlib.widgets import CheckButtons, Button
 
+
+
+
 # toggleable lines
 fig, ax = plt.subplots(figsize=(12, 6))
 lines = []
@@ -502,6 +508,9 @@ df['sTECpk'] = sTECpk_series.flatten()
 
 
 df['dsTECpk'] = np.nan  # initialize with NaN
+
+
+
 
 for sat in df['satellite thingymabob'].unique():
     sat_mask = df['satellite thingymabob'] == sat
@@ -522,7 +531,7 @@ for sat in df['satellite thingymabob'].unique():
     labels.extend([f'sTECpk {sat}', f'dsTECpk {sat}']) # f'TECp {sat} (code)', f'TECc {sat} (phase)', 
 
 
-plt.title('TEC for each satellite thingymabob ('+EUR+')')
+plt.title('TEC (phase) for each satellite thingymabob ('+EUR+')')
 plt.xlabel('Time')
 plt.ylabel('TEC (TECU)')
 plt.tight_layout()
@@ -568,9 +577,15 @@ fig2, ax2 = plt.subplots(figsize=(12, 6))
 lines2 = []
 labels2 = []
 
+
+
+
 # Add psTECpk and dpsTECpk to the DataFrame
 df['psTECpk'] = psTECpk_series.flatten()
 df['dpsTECpk'] = np.nan
+
+
+
 
 for sat in df['satellite thingymabob'].unique():
     sat_mask = df['satellite thingymabob'] == sat
@@ -585,7 +600,7 @@ for sat in df['satellite thingymabob'].unique():
     lines2.extend([l1, l2])
     labels2.extend([f'psTECpk {sat}', f'dpsTECpk {sat}'])
 
-ax2.set_title('psTECpk for each satellite thingymabob ('+EUR+')')
+ax2.set_title('TEC (code) for each satellite thingymabob ('+EUR+')')
 ax2.set_xlabel('Time')
 ax2.set_ylabel('psTECpk (units)')
 plt.tight_layout()
@@ -621,3 +636,156 @@ plt.subplots_adjust(left=0.22)
 plt.show()
 
 
+
+'''
+plot_root = tk.Tk()
+plot_root.title("TEC Plots")
+
+
+notebook = ttk.Notebook(plot_root)
+notebook.pack(fill='both', expand=True)
+
+# sTECpk and dsTECpk
+fig1, ax1 = plt.subplots(figsize=(12, 6))
+lines1 = []
+labels1 = []
+
+for sat in df['satellite thingymabob'].unique():
+    sat_df = df[df['satellite thingymabob'] == sat]
+    l3, = ax1.plot(sat_df['time'], sat_df['sTECpk'], label=f'sTECpk {sat}', linestyle='-.')
+    l4, = ax1.plot(sat_df['time'], sat_df['dsTECpk'], label=f'dsTECpk {sat}', linestyle=':')
+    lines1.extend([l3, l4])
+    labels1.extend([f'sTECpk {sat}', f'dsTECpk {sat}'])
+
+ax1.set_title('TEC (phase) for each satellite thingymabob ('+EUR+')')
+ax1.set_xlabel('Time')
+ax1.set_ylabel('TEC (TECU)')
+ax1.legend(loc='upper left', bbox_to_anchor=(1, 1))
+fig1.tight_layout()
+
+tab1 = ttk.Frame(notebook)
+notebook.add(tab1, text="Phase TEC")
+
+canvas1 = FigureCanvasTkAgg(fig1, master=tab1)
+canvas1.draw()
+canvas1.get_tk_widget().pack(fill='both', expand=True)
+
+# psTECpk and dpsTECpk
+fig2, ax2 = plt.subplots(figsize=(12, 6))
+lines2 = []
+labels2 = []
+
+for sat in df['satellite thingymabob'].unique():
+    sat_df = df[df['satellite thingymabob'] == sat]
+    l1, = ax2.plot(sat_df['time'], sat_df['psTECpk'], label=f'psTECpk {sat}', linestyle='-.')
+    l2, = ax2.plot(sat_df['time'], sat_df['dpsTECpk'], label=f'dpsTECpk {sat}', linestyle=':')
+    lines2.extend([l1, l2])
+    labels2.extend([f'psTECpk {sat}', f'dpsTECpk {sat}'])
+
+ax2.set_title('TEC (code) for each satellite thingymabob ('+EUR+')')
+ax2.set_xlabel('Time')
+ax2.set_ylabel('psTECpk (units)')
+ax2.legend(loc='upper left', bbox_to_anchor=(1, 1))
+fig2.tight_layout()
+
+tab2 = ttk.Frame(notebook)
+notebook.add(tab2, text="Code TEC")
+
+canvas2 = FigureCanvasTkAgg(fig2, master=tab2)
+canvas2.draw()
+canvas2.get_tk_widget().pack(fill='both', expand=True)
+
+
+
+def legend_interactive(fig, ax, lines):
+    leg = ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+    lined = {}
+    for legline, origline in zip(leg.get_lines(), lines):
+        legline.set_picker(True)
+        lined[legline] = origline
+
+    def on_pick(event):
+        legline = event.artist
+        origline = lined[legline]
+        vis = not origline.get_visible()
+        origline.set_visible(vis)
+        legline.set_alpha(1.0 if vis else 0.2)
+        fig.canvas.draw()
+
+    fig.canvas.mpl_connect('pick_event', on_pick)
+
+
+legend_interactive(fig1, ax1, lines1)
+legend_interactive(fig2, ax2, lines2)
+'''
+
+'''
+def add_boxes(tab, lines, labels, canvas):
+   
+    control_frame = tk.Frame(tab)
+    control_frame.pack(side='right', fill='y', padx=10, pady=10)
+    vars = []
+    for i, label in enumerate(labels):
+        var = tk.BooleanVar(value=True)
+        cb = tk.Checkbutton(control_frame, text=label, variable=var)
+        cb.pack(anchor='w')
+        vars.append(var)
+        def toggle_line(idx=i):
+            lines[idx].set_visible(vars[idx].get())
+            canvas.draw()
+        var.trace_add('write', lambda *args, idx=i: toggle_line(idx))
+    # Toggle all button
+    def toggle_all():
+        new_state = not all(v.get() for v in vars)
+        for v in vars:
+            v.set(new_state)
+    btn = tk.Button(control_frame, text="Toggle all")
+    btn.pack(pady=10)
+    btn.config(command=toggle_all)
+
+add_boxes(tab1, lines1, labels1, canvas1)
+add_boxes(tab2, lines2, labels2, canvas2)
+'''
+
+
+
+'''
+def fake_checkbox_legend(fig, ax, lines, labels):
+    checked = [True] * len(lines)
+    def get_label(i):
+        return f"{'☑' if checked[i] else '☐'} {labels[i]}"
+
+    leg = ax.legend([get_label(i) for i in range(len(labels))], loc='upper left', bbox_to_anchor=(1, 1))
+    lined = {}
+    for i, (legline, origline) in enumerate(zip(leg.get_lines(), lines)):
+        legline.set_picker(True)
+        lined[legline] = (origline, i)
+    def on_pick(event):
+        legline = event.artist
+        origline, idx = lined[legline]
+        checked[idx] = not checked[idx]
+        origline.set_visible(checked[idx])
+        leg.set_texts([get_label(i) for i in range(len(labels))])
+        legline.set_alpha(1.0 if checked[idx] else 0.2)
+        fig.canvas.draw()
+    fig.canvas.mpl_connect('pick_event', on_pick)
+    from matplotlib.widgets import Button
+    toggle_ax = fig.add_axes([0.81, 0.05, 0.15, 0.05])
+    toggle_button = Button(toggle_ax, 'Toggle all')
+    def toggle_all(event):
+        new_state = not all(checked)
+        for idx, (line, legline) in enumerate(zip(lines, leg.get_lines())):
+            checked[idx] = new_state
+            line.set_visible(new_state)
+            legline.set_alpha(1.0 if new_state else 0.2)
+        leg.set_texts([get_label(i) for i in range(len(labels))])
+        fig.canvas.draw()
+    toggle_button.on_clicked(toggle_all)
+
+fake_checkbox_legend(fig1, ax1, lines1, labels1)
+fake_checkbox_legend(fig2, ax2, lines2, labels2)
+'''
+
+
+
+#plot_root.mainloop()
